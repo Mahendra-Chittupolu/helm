@@ -62,6 +62,36 @@ func TestValidateChartYamlFormat(t *testing.T) {
 func TestValidateChartName(t *testing.T) {
 	require.Error(t, validateChartName(badChart), "validateChartName to return a linter error, got no error")
 	assert.Error(t, validateChartName(badChartName), "expected validateChartName to return a linter error for an invalid name, got no error")
+
+	tests := []struct {
+		name        string
+		chartName   string
+		expectError string
+	}{
+		{"empty name", "", "name is required"},
+		{"name with path", "../mychart", "should not include a path"},
+		{"uppercase letters", "MyChart", "must not contain any upper case letters"},
+		{"underscore", "my_chart", "must not contain any upper case letters"},
+		{"dot", "my.chart", "must not contain any upper case letters"},
+		{"starts with number", "1chart", "must begin with a lowercase alphabetic character"},
+		{"starts with hyphen", "-chart", "must begin with a lowercase alphabetic character"},
+		{"valid name", "my-chart", ""},
+		{"valid name with numbers", "chart123", ""},
+		{"single character", "a", ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			md := &chart.Metadata{Name: tt.chartName}
+			err := validateChartName(md)
+			if tt.expectError == "" {
+				assert.NoError(t, err, "validateChartName(%q) to return no error, got a linter error", tt.chartName)
+			} else {
+				require.Error(t, err, "validateChartName(%q) to return a linter error, got no error", tt.chartName)
+				assert.Contains(t, err.Error(), tt.expectError)
+			}
+		})
+	}
 }
 
 func TestValidateChartVersion(t *testing.T) {
